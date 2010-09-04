@@ -1,0 +1,11 @@
+--- 
+test: 
+  :hosts: bloopletech-laptop
+  :metrics: cpu-0/*
+  :profile_name: test
+  :url: test
+test2: 
+  :hosts: bloopletech-laptop
+  :metrics: "*/*"
+  :profile_name: test2
+  :url: test2

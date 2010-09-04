@@ -1,36 +1,43 @@
 #!/usr/bin/env ruby
 
-require 'pathname'
-@root = Pathname.new(File.dirname(__FILE__)).parent.expand_path
-$: << @root.to_s
+module Kernel
+  def __DIRNAME__
+    File.dirname(File.expand_path(caller.first.match(/^(.*?):/)[1]))
+  end
+end
+
+class String
+  def /(name)
+    self + "/" + name
+  end
+end
 
 require 'sinatra/base'
 require 'haml'
-require 'lib/visage/profile'
-require 'lib/visage/config'
-require 'lib/visage/helpers'
-require 'lib/visage/config/init'
-require 'lib/visage/collectd/rrds'
-require 'lib/visage/collectd/json'
+require_relative 'visage/profile'
+require_relative 'visage/config'
+require_relative 'visage/helpers'
+require_relative 'visage/config/init'
+require_relative 'visage/collectd/rrds'
+require_relative 'visage/collectd/json'
 require 'yajl/json_gem'
 
 module Visage
-  class Application < Sinatra::Base
-    @root = Pathname.new(File.dirname(__FILE__)).parent.expand_path
-    set :public, @root.join('lib/visage/public')
-    set :views,  @root.join('lib/visage/views')
+  class Visage < Sinatra::Base
+    set :public, "#{__DIRNAME__}/visage/public"
+    set :views,  "#{__DIRNAME__}/visage/views"
 
     helpers Sinatra::LinkToHelper
     helpers Sinatra::PageTitleHelper
   end
 
-  class Profiles < Application
+  class Visage
     get '/' do
       redirect '/profiles'
     end
 
     get '/profiles/:url' do
-      @profile = Visage::Profile.get(params[:url])
+      @profile = Profile.get(params[:url])
       raise Sinatra::NotFound unless @profile
       @start = params[:start]
       @finish = params[:finish]
@@ -38,17 +45,17 @@ module Visage
     end
 
     get '/profiles' do
-      @profiles = Visage::Profile.all
+      @profiles = Profile.all
       haml :profiles
     end
   end
 
 
-  class Builder < Application
+  class Visage
 
     get "/builder" do
       if params[:submit] == "create"
-        @profile = Visage::Profile.new(params)
+        @profile = Profile.new(params)
 
         if @profile.save
           redirect "/profiles/#{@profile.url}"
@@ -56,7 +63,7 @@ module Visage
           haml :builder
         end
       else
-        @profile = Visage::Profile.new(params)
+        @profile = Profile.new(params)
 
         haml :builder
       end
@@ -66,14 +73,14 @@ module Visage
     get '/javascripts/visage.js' do
       javascript = ""
       %w{raphael-min g.raphael g.line mootools-1.2.3-core mootools-1.2.3.1-more graph}.each do |js|
-        javascript += File.read(@root.join('lib/visage/public/javascripts', "#{js}.js"))
+        javascript += File.read(__DIRNAME__ / 'visage/public/javascripts' / "#{js}.js")
       end
       javascript
     end
 
   end
 
-  class JSON < Application
+  class Visage
 
     # JSON data backend
 
@@ -83,28 +90,28 @@ module Visage
       plugin = params[:captures][1].gsub("\0", "")
       plugin_instances = params[:captures][2].gsub("\0", "")
 
-      collectd = CollectdJSON.new(:rrddir => Visage::Config.rrddir,
-                                  :fallback_colors => Visage::Config.fallback_colors)
+      collectd = CollectdJSON.new(:rrddir => Config.rrddir,
+                                  :fallback_colors => Config.fallback_colors)
       json = collectd.json(:host => host,
                            :plugin => plugin,
                            :plugin_instances => plugin_instances,
                            :start => params[:start],
                            :finish => params[:finish],
-                           :plugin_colors => Visage::Config.plugin_colors)
+                           :plugin_colors => Config.plugin_colors)
       # if the request is cross-domain, we need to serve JSONP
       maybe_wrap_with_callback(json)
     end
 
     get %r{/data/([^/]+)} do
       host = params[:captures][0].gsub("\0", "")
-      metrics = Visage::Collectd::RRDs.metrics(:host => host)
+      metrics = Collectd::RRDs.metrics(:host => host)
 
       json = { host => metrics }.to_json
       maybe_wrap_with_callback(json)
     end
 
     get %r{/data(/)*} do
-      hosts = Visage::Collectd::RRDs.hosts
+      hosts = Collectd::RRDs.hosts
       json = { :hosts => hosts }.to_json
       maybe_wrap_with_callback(json)
     end

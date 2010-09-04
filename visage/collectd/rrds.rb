@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 
-$: << File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
-
-require 'lib/visage/patches'
+require_relative '../patches'
 
 module Visage
   module Collectd
@@ -10,7 +8,7 @@ module Visage
 
       class << self
         def rrddir
-          @rrddir ||= Visage::Config.rrddir
+          @rrddir ||= Config.rrddir
         end
 
         def hosts(opts={})

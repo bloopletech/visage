@@ -1,9 +1,7 @@
 #!/usr/bin/env ruby
 
-root = Pathname.new(File.dirname(__FILE__)).parent.parent
-$: << root.join('lib')
-require 'lib/visage/graph'
-require 'lib/visage/patches'
+require_relative 'graph'
+require_relative 'patches'
 require 'digest/md5'
 
 module Visage
@@ -11,8 +9,7 @@ module Visage
     attr_reader :options, :selected_hosts, :hosts, :selected_metrics, :metrics,
                 :name, :errors
 
-    @@root = Pathname.new(File.dirname(__FILE__)).parent.parent.expand_path
-    @@profiles_filename = @@root.join('lib/visage/config/profiles.yaml')
+    @@profiles_filename = __DIRNAME__ / "config/profiles.yaml"
 
     def self.get(id)
       url = id.downcase.gsub(/[^\w]+/, "+")
@@ -35,18 +32,18 @@ module Visage
       # FIXME: add regex matching option
       if @options[:hosts].blank?
         @selected_hosts = []
-        @hosts = Visage::Collectd::RRDs.hosts
+        @hosts = Collectd::RRDs.hosts
       else
-        @selected_hosts = Visage::Collectd::RRDs.hosts(:hosts => @options[:hosts])
-        @hosts = Visage::Collectd::RRDs.hosts - @selected_hosts
+        @selected_hosts = Collectd::RRDs.hosts(:hosts => @options[:hosts])
+        @hosts = Collectd::RRDs.hosts - @selected_hosts
       end
 
       if @options[:metrics].blank?
         @selected_metrics = []
-        @metrics = Visage::Collectd::RRDs.metrics
+        @metrics = Collectd::RRDs.metrics
       else
-        @selected_metrics = Visage::Collectd::RRDs.metrics(:metrics => @options[:metrics])
-        @metrics = Visage::Collectd::RRDs.metrics - @selected_metrics
+        @selected_metrics = Collectd::RRDs.metrics(:metrics => @options[:metrics])
+        @metrics = Collectd::RRDs.metrics - @selected_metrics
       end
     end
 
@@ -84,11 +81,11 @@ module Visage
     def graphs
       graphs = []
 
-      hosts = Visage::Collectd::RRDs.hosts(:hosts => @options[:hosts])
+      hosts = Collectd::RRDs.hosts(:hosts => @options[:hosts])
       metrics = @options[:metrics]
       hosts.each do |host|
         attrs = {}
-        globs = Visage::Collectd::RRDs.metrics(:host => host, :metrics => metrics)
+        globs = Collectd::RRDs.metrics(:host => host, :metrics => metrics)
         globs.each do |n|
           parts    = n.split('/')
           plugin   = parts[0]
@@ -98,7 +95,7 @@ module Visage
         end
 
         attrs.each_pair do |plugin, instances|
-          graphs << Visage::Graph.new(:host => host,
+          graphs << Graph.new(:host => host,
                                       :plugin => plugin,
                                       :instances => instances)
         end
@@ -124,3 +121,4 @@ module Visage
 
   end
 end
+puts "LOADED PROFILES"
