@@ -9,19 +9,6 @@ module Visage
     attr_reader :options, :selected_hosts, :hosts, :selected_metrics, :metrics,
                 :name, :errors
 
-    @@profiles_filename = __DIRNAME__ / "config/profiles.yaml"
-
-    def self.get(id)
-      url = id.downcase.gsub(/[^\w]+/, "+")
-      profiles = YAML::load_file(@@profiles_filename) || {}
-      profiles[url] ? self.new(profiles[url]) : nil
-    end
-
-    def self.all
-      profiles = YAML::load_file(@@profiles_filename) || {}
-      profiles.values.map { |prof| self.new(prof) }
-    end
-
     def initialize(opts={})
       @options = opts
       @options[:url] = @options[:profile_name] ? @options[:profile_name].downcase.gsub(/[^\w]+/, "+") : nil
@@ -50,32 +37,6 @@ module Visage
     # Hashed based access to @options.
     def method_missing(method)
       @options[method]
-    end
-
-    def save
-      if valid?
-        # Construct record.
-        attrs = { :hosts => @options[:hosts],
-                  :metrics => @options[:metrics],
-                  :profile_name => @options[:profile_name],
-                  :url => @options[:profile_name].downcase.gsub(/[^\w]+/, "+") }
-
-        # Save it.
-        profiles = YAML::load_file(@@profiles_filename) || {}
-        profiles[attrs[:url]] = attrs
-
-        File.open(@@profiles_filename, 'w') do |file|
-          file << profiles.to_yaml
-        end
-
-        true
-      else
-        false
-      end
-    end
-
-    def valid?
-      valid_profile_name?
     end
 
     def graphs
@@ -121,4 +82,3 @@ module Visage
 
   end
 end
-puts "LOADED PROFILES"

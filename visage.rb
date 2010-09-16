@@ -29,44 +29,14 @@ module Visage
 
     helpers Sinatra::LinkToHelper
     helpers Sinatra::PageTitleHelper
-  end
 
-  class Visage
+
     get '/' do
-      redirect '/profiles'
-    end
-
-    get '/profiles/:url' do
-      @profile = Profile.get(params[:url])
+      @profile = Profile.new
       raise Sinatra::NotFound unless @profile
       @start = params[:start]
       @finish = params[:finish]
       haml :profile
-    end
-
-    get '/profiles' do
-      @profiles = Profile.all
-      haml :profiles
-    end
-  end
-
-
-  class Visage
-
-    get "/builder" do
-      if params[:submit] == "create"
-        @profile = Profile.new(params)
-
-        if @profile.save
-          redirect "/profiles/#{@profile.url}"
-        else
-          haml :builder
-        end
-      else
-        @profile = Profile.new(params)
-
-        haml :builder
-      end
     end
 
     # infrastructure for embedding
@@ -78,9 +48,6 @@ module Visage
       javascript
     end
 
-  end
-
-  class Visage
 
     # JSON data backend
 
@@ -98,6 +65,7 @@ module Visage
                            :start => params[:start],
                            :finish => params[:finish],
                            :plugin_colors => Config.plugin_colors)
+
       # if the request is cross-domain, we need to serve JSONP
       maybe_wrap_with_callback(json)
     end
@@ -120,6 +88,5 @@ module Visage
     def maybe_wrap_with_callback(json)
       params[:callback] ? params[:callback] + '(' + json + ')' : json
     end
-
   end
 end
